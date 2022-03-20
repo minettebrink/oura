@@ -24,7 +24,7 @@ weather = pd.read_csv(full_path_weather)
 st.write("# Minettes Oura")
 
 st.write("""
-On this app, I'm showing analysis from my Orua ring data. It is just to showcase my skills to work with 
+On this app, I'm showing analysis from my Oura ring data. It is just to showcase my skills to work with 
 datasets and analyze data. If you have an Oura ring, you can get almost all the information I've studied 
 from the app. You can find the code on my Github to see how I've done this. Enjoy!
 """)
