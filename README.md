@@ -1,6 +1,7 @@
 # Overview of data analysis from my Oura ring
 
-I have gathered here how I analyzed the data downloaded from my Oura ring. The reason for doing this is to show and improve my coding, data processing, and analytical skills. This project continues because it can constantly be improved, which I aim to do.
+I have gathered here how I analyzed the data downloaded from my Oura ring. The reason for doing this is to show and improve my coding, data processing, and analytical skills. This project continues because it can constantly be improved, which I aim to do. 
+The following link will go to my analysis: https://share.streamlit.io/minettebrink/oura/main/analysis/web_page.py
 
 ## Analysis
 -	There are two files in this folder, web_page.py, and analysing_data.py
