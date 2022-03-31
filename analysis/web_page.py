@@ -1,24 +1,28 @@
+from numpy import float64
 import streamlit as st
 import pandas as pd
-import os 
+import s3fs
+
+fs = s3fs.S3FileSystem(anon=False)
+
+def read_file(filename):
+    with fs.open(filename) as f:
+        return f.read().decode("utf-8")
 
 
-script_dir = os.path.dirname(__file__)
+text_daily_activity = read_file("firststreamlitbucket/daily_activity.csv")
+text_sleep = read_file("firststreamlitbucket/sleep.csv")
+text_readiness = read_file("firststreamlitbucket/readiness.csv")
+text_workouts = read_file("firststreamlitbucket/workouts.csv")
+text_heart_rate = read_file("firststreamlitbucket/heart_rate.csv")
+text_weather =read_file("firststreamlitbucket/weather.csv")
 
-full_path_readiness = os.path.join(script_dir, '../data/oura/readiness.csv')
-full_path_sleep = os.path.join(script_dir, '../data/oura/sleep.csv')
-full_path_workouts = os.path.join(script_dir, '../data/oura/workouts.csv')
-full_path_daily_activity = os.path.join(script_dir, '../data/oura/daily_activity.csv')
-full_path_heart_rate = os.path.join(script_dir, '../data/oura/heart_rate.csv')
-full_path_weather = os.path.join(script_dir, '../data/weather/weather.csv')
-
-readiness = pd.read_csv(full_path_readiness)
-sleep = pd.read_csv(full_path_sleep)
-workouts = pd.read_csv(full_path_workouts)
-daily_activity = pd.read_csv(full_path_daily_activity)
-heart_rate = pd.read_csv(full_path_heart_rate)
-weather = pd.read_csv(full_path_weather)
-
+readiness = pd.DataFrame([x.split(',') for x in text_readiness.split('\n')[1:]], columns=[x for x in text_readiness.split('\n')[0].split(',')])
+sleep = pd.DataFrame([x.split(',') for x in text_sleep.split('\n')[1:]], columns=[x for x in text_sleep.split('\n')[0].split(',')])
+workouts = pd.DataFrame([x.split(',') for x in text_workouts.split('\n')[1:]], columns=[x for x in text_workouts.split('\n')[0].split(',')])
+daily_activity = pd.DataFrame([x.split(',') for x in text_daily_activity.split('\n')[1:]], columns=[x for x in text_daily_activity.split('\n')[0].split(',')])
+heart_rate = pd.DataFrame([x.split(',') for x in text_heart_rate.split('\n')[1:]], columns=[x for x in text_heart_rate.split('\n')[0].split(',')])
+weather = pd.DataFrame([x.split(',') for x in text_weather.split('\n')[1:]], columns=[x for x in text_weather.split('\n')[0].split(',')])
 
 
 st.write("# Minettes Oura")
@@ -29,12 +33,15 @@ datasets and analyze data. If you have an Oura ring, you can get almost all the 
 from the app. You can find the code on my Github to see how I've done this. Enjoy!
 """)
 
+
 st.write("## Different graphs")
 st.write("""
 I'm going to present different graphs below. Some have more exciting results than others, 
 and some conclusions can be drawn in some cases. This is the first version, 
 and I plan to do some tweaks, but it is up and running now. 
 """)
+
+
 st.write("### Readiness and sleep score")
 st.write("""
 I started by comparing my readiness and sleep score. It was relatively easy for me to imagine how 
@@ -46,8 +53,11 @@ sleep_and_readiness_score = pd.concat([sleep['summary_date'], sleep['score'], re
 sleep_new = sleep.rename(columns={'score':'sleep score'})
 readiness_new = readiness.rename(columns={'score': 'readiness score'})
 sleep_and_readiness_score = pd.concat([sleep_new['summary_date'], sleep_new['sleep score'], readiness_new['readiness score']], axis = 1)
-# sleep_and_readiness_score = sleep_and_readiness_score.set_index('summary_date')
 sleep_and_readiness = pd.DataFrame(sleep_and_readiness_score[:198], columns=['sleep score', 'readiness score'])
+
+sleep_and_readiness['sleep score']=sleep_and_readiness['sleep score'].astype(float)
+sleep_and_readiness['readiness score']=sleep_and_readiness['readiness score'].astype(float)
+
 st.line_chart(sleep_and_readiness)
 
 st.write("""
@@ -59,6 +69,7 @@ stressed, overtrained, or sick. When both my sleep and readiness score has dippe
 to a party or dinner and drank some wine, and I stayed up late. On the other hand, when both scores are 
 high, I live a well-balanced life. 
 """)
+
 
 st.write("### Heart rate variability and avrage heartrate")
 
@@ -76,6 +87,10 @@ even though your heart rate and hrv say otherwise.
 sleep1 = sleep.rename(columns={'hr_average':'heart rate'})
 sleep1 = sleep1.rename(columns={'rmssd':'heart rate variability'})
 hr_and_hrv = pd.DataFrame(sleep1[:180], columns=['heart rate', 'heart rate variability'])
+
+hr_and_hrv['heart rate'] = hr_and_hrv['heart rate'].astype(float64)
+hr_and_hrv['heart rate variability'] = hr_and_hrv['heart rate variability'].astype(float64)
+
 st.line_chart(hr_and_hrv)
 
 st.write("""
@@ -88,6 +103,7 @@ energetic and have had a good balance between exercise, work, and rest. There ar
 hrv and peeks in heart rate, but that is usually due to intense exercise, or I have drunk a glass of wine 
 in the evening. 
 """)
+
 
 st.write("### Percentage change in body and outdoor temperature")
 
@@ -104,8 +120,11 @@ sleep2 = sleep.rename(columns= {'temperature_delta':'body temperature'})
 weather1 = weather.rename(columns={'temp':'outdoor temperature'})
 body_and_outdoor_temp = pd.concat([weather1['date'], sleep2['body temperature'], weather1['outdoor temperature']], axis = 1)
 body_and_outdoor_temp_df = pd.DataFrame(body_and_outdoor_temp[:14], columns = ['body temperature', 'outdoor temperature'])
-st.line_chart(body_and_outdoor_temp_df)
 
+body_and_outdoor_temp_df['body temperature'] = body_and_outdoor_temp_df['body temperature'].astype(float64)
+body_and_outdoor_temp_df['outdoor temperature'] = body_and_outdoor_temp_df['outdoor temperature'].astype(float64)
+
+st.line_chart(body_and_outdoor_temp_df)
 
 
 st.write("### Percentage change in heart rate and activitytime")
@@ -124,6 +143,11 @@ sleep3 = sleep.rename(columns= {'pct_hr_avrage':'heart rate'})
 daily_activity1 = daily_activity.rename(columns={'pct_activitytime':'activity time'})
 sleep_and_activity = pd.concat([daily_activity1['day'], sleep3['heart rate'], daily_activity1['activity time']], axis = 1)
 sleep_and_activity_df = pd.DataFrame(sleep_and_activity[:189], columns=['heart rate', 'activity time'])
+sleep_and_activity_df = sleep_and_activity_df.iloc[1:]
+
+sleep_and_activity_df['heart rate'] = sleep_and_activity_df['heart rate'].astype(float64)
+sleep_and_activity_df['activity time'] = sleep_and_activity_df['activity time'].astype(float64)
+
 st.line_chart(sleep_and_activity_df)
 
 st.write("""
@@ -133,6 +157,7 @@ chart might look big, but a 1 % change is not much in absolute values. My heart 
 activity has decreased the day before. On the other hand, if I had had an active day before, my heart rate 
 would have increased. 
 """)
+
 
 st.write("### Percentage change in outdoor temperature and heartrate")
 
@@ -147,7 +172,12 @@ weather1 = weather.rename(columns={'pct_temp': 'temperature'})
 heart_rate1 = heart_rate.rename(columns= {'pct_bpm':'heart rate'})
 temperature_and_heartrate = pd.concat([weather1['date'], weather1['temperature'], heart_rate1['heart rate']], axis = 1)
 temperature_and_heartrate_df = pd.DataFrame(temperature_and_heartrate[1:11],columns=['temperature', 'heart rate'])
+
+temperature_and_heartrate_df['temperature'] = temperature_and_heartrate_df['temperature'].astype(float64)
+temperature_and_heartrate_df['heart rate'] = temperature_and_heartrate_df['heart rate'].astype(float64)
+
 st.line_chart(temperature_and_heartrate_df)
+
 
 st.write("### Percentage difference steps and readiness score percentage difference")
 
@@ -162,7 +192,12 @@ daily_activity1 = daily_activity.rename(columns={'pct_steps': 'percentage differ
 readiness1 = readiness.rename(columns= {'pct_score':'percentage difference in score'})
 steps_and_readiness_score = pd.concat([readiness1['summary_date'], daily_activity1['percentage difference in steps'], readiness1['percentage difference in score']], axis = 1)
 steps_and_readiness_score_df = pd.DataFrame(steps_and_readiness_score[1:180], columns=['percentage difference in steps', 'percentage difference in score'])
+
+steps_and_readiness_score_df['percentage difference in steps'] = steps_and_readiness_score_df['percentage difference in steps'].astype(float64)
+steps_and_readiness_score_df['percentage difference in score'] = steps_and_readiness_score_df['percentage difference in score'].astype(float64)
+
 st.line_chart(steps_and_readiness_score_df)
+
 
 st.write("### Calories burned during a workout and hrv")
 
@@ -176,6 +211,10 @@ be the case that I've burned many calories during a workout and have lower hrv a
 sleep1 = sleep.rename(columns={'rmssd': 'heart rate variability'})
 hrv_and_calories = pd.concat([sleep1['summary_date'], sleep1['heart rate variability'], workouts['calories']], axis = 1)
 hrv_and_calories_df = pd.DataFrame(hrv_and_calories[:200], columns=['calories', 'heart rate variability'])
+
+hrv_and_calories_df['calories'] = hrv_and_calories_df['calories'].astype(float64)
+hrv_and_calories_df['heart rate variability'] = hrv_and_calories_df['heart rate variability'].astype(float64)
+
 st.line_chart(hrv_and_calories_df)
 
 st.write("""
